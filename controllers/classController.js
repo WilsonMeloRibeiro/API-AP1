@@ -1,6 +1,8 @@
 const Class = require('../models/class.js');
 const { Op } = require('sequelize');
 
+verifyTime("12aaa", "bbb");
+
 function isNumber(n) { return /^-?[\d.]+(?:e-?\d+)?$/.test(n); } 
 
 const getClass = async (req, res)=>{
@@ -58,12 +60,25 @@ const verifyConflit = async (req, res)=>{
 }
 
 // NOT FINISHED
+//TODO: Flag error when code is wrong
 function verifyTime(classCode1, classCode2){
-    var days;
+    var classDays1;
+    var classDays2;
     var i =0;
-    while(isNumber(classCode1)){
 
+    //TODO: loop this through
+    while(isNumber(classCode1.at(i))){
+        i++;
+        if(i>5) return false;
     }
+    classDays1 = classCode1.substring(0,i).split('');
+    var i =0;
+    while(isNumber(classCode2.at(i))){
+        i++;
+        if(i>5) return false;
+    }
+    classDays2 = classCode2.substring(0,i).split('');
+
 }
 
 module.exports = {getClass, registerClass, deleteClass, getClassByCode, verifyConflit};
