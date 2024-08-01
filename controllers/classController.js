@@ -1,7 +1,6 @@
 const Class = require('../models/class.js');
 const { Op } = require('sequelize');
 
-verifyTime("12aaa", "bbb");
 
 function isNumber(n) { return /^-?[\d.]+(?:e-?\d+)?$/.test(n); } 
 
@@ -11,18 +10,17 @@ const getClass = async (req, res)=>{
 }
 
 const registerClass = async (req, res)=>{
+    const codeExist = await Class.findByPk(req.body.ClassCode)
+    if(codeExist) return res.status(400).json("Code Already exist");
+
+    const ClassTimeCode = req.body.ClassTimeCode;
     const ClassName = req.body.ClassName;
-    const ClassTime = req.body.ClassTime;
-    const ClassTurn = req.body.ClassTurn;
-    const ClassPeriod = req.body.ClassPeriod;
     const ClassCode = req.body.ClassCode;
-    if(!ClassName||!ClassTime || !ClassTurn || !ClassPeriod || !ClassCode) return res.status(400).json("Some data is empty")
+    if(!ClassName|| !ClassTimeCode || !ClassCode) return res.status(400).json("Some data is empty")
     const result = await Class.create({
     ClassName,
-    ClassTime,
-    ClassTurn,
-    ClassPeriod,
-    ClassCode
+    ClassTimeCode,
+    ClassCode,
 }); 
     return res.json(result);
 }
@@ -46,39 +44,134 @@ const getClassByCode = async (req, res)=>{
 
 // NOT FINISHED
 const verifyConflit = async (req, res)=>{
+    var classResult=[];
+    var conflict = [];
     const classCodes = req.body.ClassCodes;
-    const classResult = await Class.findAll({where: {
+    const Result = await Class.findAll({where: {
         ClassCode:classCodes,
     },
 });
+
+    Result.map((e)=>classResult.push(e.dataValues))
     for(var i =0; i<classResult.length; i++){
-        for(var j = 0; j<classResult.length; j++){
-            if(verifyTime(classResult[i].ClassCode, classResult[j].ClassCode)) return true;
+        for(var j = (1+i); j<classResult.length; j++){
+        if(!verifyTime(classResult[i], classResult[j])){
+            conflict.push(`${classResult[i].ClassCode} conflita com ${classResult[j].ClassCode}`)};
         }
     }
-    return res.status(200).json(classResult);
+    if(conflict.length==0) return res.status(200).json("NO CONFLICT");
+    return res.status(200).json(conflict);
+}
+//NOTFINISHED
+function getTimeInformation(ClassTimeInformationCode){
+    //inFull 0: Days; 1: turn; 2: time
+    var inFull=[];
+    var i = 0;
+    while(isNumber(ClassTimeInformationCode.at(i))){
+        i++;
+        if(i>5) return false;
+    }
+    const classDay = ClassTimeInformationCode.substring(0,i).split('').map((e)=> parseInt(e));
+    const classTurn = ClassTimeInformationCode.substring(i,i+1);
+    const classTime = ClassTimeInformationCode.substring(i+1).split('').map((e)=> parseInt(e));
+    
+    if(classDay.length>1){
+        var tempFull = [];
+        for(var i =0; classDay.length>i; i++){
+            switch(classDay[i]){
+                case 2:
+                    tempFull[i] = "Segunda";
+                break;
+                case 3:
+                    tempFull[i] = "Terça";
+                break;
+                case 4:
+                    tempFull[i] = "Quarta";
+                break;
+                case 5:
+                    tempFull[i] = "Quinta";
+                break;
+                case 6:
+                    tempFull[i] = "Sexta";
+                break;
+                default:
+                break;
+            }
+        }
+        inFull[0] = `${tempFull[0]} e ${tempFull[1]}`;
+    }else{
+        switch(classDay){
+            case 2:
+                inFull[0] = "Segunda";
+            break;
+            case 3:
+                inFull[0] = "Terça";
+            break;
+            case 4:
+                inFull[0] = "Quarta";
+            break;
+            case 5:
+                inFull[0] = "Quinta";
+            break;
+            case 6:
+                inFull[0] = "Sexta";
+            break;
+            default:
+                    break;
+        }
+    }
+
+    
+    switch (classTurn) {
+        case 'M':
+            inFull[1] = "Matutino";
+            break;
+        case 'V':
+            inFull[1] = "Vespertino";
+            break;
+        case 'N':
+            inFull[1] = "Noturno";
+            break;
+        default:
+            inFull[1] = "NOT FOUND";
+            break;
+    }
+
+    const ClassTimeInformationCodeResult = {
+    classDay: classDay,
+    classTurn: classTurn,
+    classTime: classTime,
+    classFull: inFull
+}
+    return ClassTimeInformationCodeResult;
 }
 
 // NOT FINISHED
 //TODO: Flag error when code is wrong
-function verifyTime(classCode1, classCode2){
-    var classDays1;
-    var classDays2;
-    var i =0;
+//TRUE = NO confict; FALSE = Conflict
+function verifyTime(ClassCode1, ClassCode2){
+    const classInformation1 = getTimeInformation(ClassCode1.ClassTimeCode);
+    const classInformation2 = getTimeInformation(ClassCode2.ClassTimeCode);
+    var conflict;
+    var sameDay = false;
 
-    //TODO: loop this through
-    while(isNumber(classCode1.at(i))){
-        i++;
-        if(i>5) return false;
-    }
-    classDays1 = classCode1.substring(0,i).split('');
-    var i =0;
-    while(isNumber(classCode2.at(i))){
-        i++;
-        if(i>5) return false;
-    }
-    classDays2 = classCode2.substring(0,i).split('');
+    //verify turn
+    if(classInformation1.classTurn != classInformation2.classTurn) return true
 
+    classInformation1.classDay.map((e)=>{
+        if(classInformation2.classDay.includes(e)){
+            sameDay = true
+        } 
+    })
+    
+    //verify time
+    classInformation1.classTime.map((e)=>{
+        if(classInformation2.classTime.includes(e) && sameDay &&(ClassCode1.ClassCode !=ClassCode2.ClassCode)) conflict = true;
+    })
+
+    if(conflict) return false
+
+    return true;
 }
 
 module.exports = {getClass, registerClass, deleteClass, getClassByCode, verifyConflit};

@@ -8,13 +8,7 @@ module.exports = {
         primaryKey: true,
         type: Sequelize.STRING
       },
-      ClassPeriod: {
-        type: Sequelize.STRING
-      },
-      ClassTurn: {
-        type: Sequelize.STRING
-      },
-      ClassTime: {
+      ClassTimeCode:{
         type: Sequelize.STRING
       },
       ClassName: {
