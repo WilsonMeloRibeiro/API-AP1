@@ -27,9 +27,9 @@ const registerClass = async (req, res)=>{
 
 const deleteClass = async (req, res)=>{
     const classFound = await Class.findByPk(req.body.ClassCode) 
-    if(!classFound) return res.status(400).json('Product not found')
+    if(!classFound) return res.status(400).json('Class not found')
     await Class.destroy({where: {ClassCode: req.body.ClassCode}})
-    return res.status(200).json(`User ${classFound.ClassCode} Deleted`);
+    return res.status(200).json(`Class ${classFound.ClassCode} Deleted`);
 }
 
 const getClassByCode = async (req, res)=>{
@@ -62,7 +62,8 @@ const verifyConflit = async (req, res)=>{
     if(conflict.length==0) return res.status(200).json("NO CONFLICT");
     return res.status(200).json(conflict);
 }
-//NOTFINISHED
+
+
 function getTimeInformation(ClassTimeInformationCode){
     //inFull 0: Days; 1: turn; 2: time
     var inFull=[];
@@ -146,7 +147,6 @@ function getTimeInformation(ClassTimeInformationCode){
     return ClassTimeInformationCodeResult;
 }
 
-// NOT FINISHED
 //TODO: Flag error when code is wrong
 //TRUE = NO confict; FALSE = Conflict
 function verifyTime(ClassCode1, ClassCode2){
